@@ -12,7 +12,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Wolf Trade - Official</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script src="https://sad.adsgram.ai/js/sad.min.js"></script>
+    <!-- СКРИПТ РЕКЛАМЫ ONCLICKA -->
+    <script src="https://js.onclckvd.com/in-stream-ad-admanager/tma.js"></script>
     <style>
         :root { --bg-main: #05070a; --bg-panel: #0f141e; --bg-header: #161c2a; --text-main: #e2e8f0; --text-muted: #64748b; --green: #00ff88; --red: #ff3366; --border: #1e293b; --gold: #fbbf24; --blue: #3b82f6; --purple: #a855f7; }
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -219,6 +220,18 @@
         const assets = { 'BTC': { icon: '₿', name: 'BTC/USDT', basePrice: 56405.39 }, 'ETH': { icon: 'Ξ', name: 'ETH/USDT', basePrice: 3000.00 }, 'TON': { icon: '💎', name: 'TON/USDT', basePrice: 5.50 }, 'SOL': { icon: '◎', name: 'SOL/USDT', basePrice: 150.00 } };
         let currentAsset = 'BTC'; let currentPrice = assets['BTC'].basePrice; let balance = 50000.00; let wallet = { 'BTC': 0, 'ETH': 0, 'TON': 0, 'SOL': 0 }; let candles = []; let debt = 0; let passiveIncome = 0; let profitMultiplier = 1; let lastClaimDate = null; let streakCount = 0; let insiderActive = false; let insiderTarget = 0; let insiderTimer = 0; let activeTrade = null; let tradeInterval = null; let playerName = tgUser ? tgUser.first_name : "verloren";
 
+        // --- ИНИЦИАЛИЗАЦИЯ ONCLICKA ---
+        let showAdFunc = null;
+        try {
+            if (window.initCdTma) {
+                window.initCdTma({ id: 6154701 })
+                    .then(show => { showAdFunc = show; })
+                    .catch(error => console.log("Ошибка инициализации рекламы:", error));
+            }
+        } catch (e) {
+            console.log("OnClickA SDK не загрузился.");
+        }
+
         const tutorialSteps = [ { title: "Добро пожаловать!", text: "Ты — начинающий трейдер. Твоя цель — заработать $1,000,000 и купить особняк." }, { title: "Как торговать?", text: "Введи количество и время внизу, затем нажми 'В лонг' (на рост) или 'В шорт' (на падение)." }, { title: "Оффлайн-доход", text: "Покупай брокеров в 'Офисе'. Они приносят деньги, даже когда ты спишь!" } ];
         let currentTut = 0;
         function showTutorial() { document.getElementById('tut-title').innerText = tutorialSteps[currentTut].title; document.getElementById('tut-text').innerText = tutorialSteps[currentTut].text; document.getElementById('tut-btn').innerText = currentTut === tutorialSteps.length - 1 ? "Погнали!" : "Далее"; document.getElementById('tutorial').classList.add('active'); }
@@ -236,32 +249,33 @@
 
         function claimDaily() { let today = new Date().toDateString(); if (lastClaimDate === today) { addLog("Бонус уже забран!", "error"); return; } let yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1); if (lastClaimDate === yesterday.toDateString()) streakCount++; else streakCount = 1; if (streakCount > 7) streakCount = 1; let reward = 10000 * streakCount; balance += reward; lastClaimDate = today; addLog(`Бонус получен! +$${reward.toLocaleString()}`, "success"); saveGame(); updateUI(); document.getElementById('streak-text').innerText = `День ${streakCount} из 7`; }
 
-        // --- ФУНКЦИЯ РЕКЛАМЫ (ADSGRAM С ЗАЩИТОЙ) ---
+        // --- ФУНКЦИЯ РЕКЛАМЫ (ONCLICKA) ---
         async function watchAd(action) {
-            if (!window.AdsGram) {
-                // Заглушка, если SDK не загрузился
-                alert("Реклама временно недоступна. Но мы дадим тебе бонус просто так!");
-                if (action === 'money') { balance += 10000; addLog("+$10,000 (бонус)", "success"); }
-                else if (action === 'debt') { debt = 0; addLog("Долг прощен (бонус)", "success"); }
-                saveGame(); updateUI();
+            if (!showAdFunc) {
+                alert("Реклама не загрузилась. Проверьте интернет и попробуйте позже.");
                 return;
             }
 
             try {
-                let adController = window.AdsGram.init({ blockId: "57871" });
-                const result = await adController.show();
+                // Вызываем функцию показа рекламы
+                await showAdFunc();
                 
-                if (result.done) {
-                    if (action === 'money') { balance += 10000; addLog("+$10,000 за рекламу", "success"); }
-                    else if (action === 'debt') { debt = 0; addLog("Долг прощен!", "success"); checkDebtStatus(); }
-                    saveGame(); updateUI();
-                    alert("Спасибо за просмотр! Награда начислена.");
-                } else {
-                    alert("Вы не досмотрели рекламу. Награда не начислена.");
+                // Если дошли сюда — реклама досмотрена
+                if (action === 'money') { 
+                    balance += 10000; 
+                    addLog("+$10,000 за рекламу", "success"); 
+                } else if (action === 'debt') { 
+                    debt = 0; 
+                    addLog("Долг прощен!", "success"); 
+                    checkDebtStatus(); 
                 }
+                saveGame(); 
+                updateUI();
+                alert("Спасибо за просмотр! Награда начислена.");
+                
             } catch (error) {
-                console.error("Ошибка рекламы:", error);
-                alert("Реклама временно недоступна. Попробуйте позже.");
+                console.error("Ошибка рекламы OnClickA:", error);
+                alert("Реклама временно недоступна. Награда не начислена.");
             }
         }
 

@@ -215,16 +215,6 @@
         let tgUser = (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) ? tg.initDataUnsafe.user : null;
         if (tg) tg.expand();
 
-        // --- ИНИЦИАЛИЗАЦИЯ ADSGRAM ---
-        let adController = null;
-        try {
-            if (window.AdsGram) {
-                adController = window.AdsGram.init({ blockId: "57871" });
-            }
-        } catch (e) {
-            console.log("AdsGram SDK не загрузился.");
-        }
-
         const CHANNEL_URL = "https://t.me/wolf_trade_news"; 
         const assets = { 'BTC': { icon: '₿', name: 'BTC/USDT', basePrice: 56405.39 }, 'ETH': { icon: 'Ξ', name: 'ETH/USDT', basePrice: 3000.00 }, 'TON': { icon: '💎', name: 'TON/USDT', basePrice: 5.50 }, 'SOL': { icon: '◎', name: 'SOL/USDT', basePrice: 150.00 } };
         let currentAsset = 'BTC'; let currentPrice = assets['BTC'].basePrice; let balance = 50000.00; let wallet = { 'BTC': 0, 'ETH': 0, 'TON': 0, 'SOL': 0 }; let candles = []; let debt = 0; let passiveIncome = 0; let profitMultiplier = 1; let lastClaimDate = null; let streakCount = 0; let insiderActive = false; let insiderTarget = 0; let insiderTimer = 0; let activeTrade = null; let tradeInterval = null; let playerName = tgUser ? tgUser.first_name : "verloren";
@@ -246,15 +236,21 @@
 
         function claimDaily() { let today = new Date().toDateString(); if (lastClaimDate === today) { addLog("Бонус уже забран!", "error"); return; } let yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1); if (lastClaimDate === yesterday.toDateString()) streakCount++; else streakCount = 1; if (streakCount > 7) streakCount = 1; let reward = 10000 * streakCount; balance += reward; lastClaimDate = today; addLog(`Бонус получен! +$${reward.toLocaleString()}`, "success"); saveGame(); updateUI(); document.getElementById('streak-text').innerText = `День ${streakCount} из 7`; }
 
-        // --- ФУНКЦИЯ РЕКЛАМЫ (ADSGRAM) ---
+        // --- ФУНКЦИЯ РЕКЛАМЫ (ADSGRAM С ЗАЩИТОЙ) ---
         async function watchAd(action) {
-            if (!adController) {
-                alert("Реклама доступна только в Telegram!");
+            if (!window.AdsGram) {
+                // Заглушка, если SDK не загрузился
+                alert("Реклама временно недоступна. Но мы дадим тебе бонус просто так!");
+                if (action === 'money') { balance += 10000; addLog("+$10,000 (бонус)", "success"); }
+                else if (action === 'debt') { debt = 0; addLog("Долг прощен (бонус)", "success"); }
+                saveGame(); updateUI();
                 return;
             }
 
             try {
+                let adController = window.AdsGram.init({ blockId: "57871" });
                 const result = await adController.show();
+                
                 if (result.done) {
                     if (action === 'money') { balance += 10000; addLog("+$10,000 за рекламу", "success"); }
                     else if (action === 'debt') { debt = 0; addLog("Долг прощен!", "success"); checkDebtStatus(); }
@@ -265,7 +261,7 @@
                 }
             } catch (error) {
                 console.error("Ошибка рекламы:", error);
-                alert("Реклама недоступна. Попробуйте позже.");
+                alert("Реклама временно недоступна. Попробуйте позже.");
             }
         }
 

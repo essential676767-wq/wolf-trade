@@ -240,7 +240,7 @@
 
         function openChannel() { if (tg) { tg.openTelegramLink(CHANNEL_URL); } else { window.open(CHANNEL_URL, "_blank"); } }
 
-        // --- ФУНКЦИЯ ПОКУПКИ STARS ---
+        // --- ИСПРАВЛЕННАЯ ФУНКЦИЯ ПОКУПКИ STARS ---
         function buyStars() {
             if (!tg || !tg.initData) {
                 alert("Покупки доступны только в Telegram!");
@@ -253,22 +253,28 @@
                 return;
             }
 
+            // Показываем загрузку
+            alert("Отправка запроса... Пожалуйста, подождите (сервер может просыпаться до 30 секунд).");
+
             fetch('https://bot-server-1-tdqa.onrender.com/create_invoice', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ chat_id: chat_id })
             })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) throw new Error('Сервер не отвечает');
+                return response.json();
+            })
             .then(data => {
                 if (data.status === 'invoice_sent') {
-                    alert("Счет создан! Проверьте сообщения в боте для оплаты.");
+                    alert("Счет создан! Проверьте сообщения в боте.");
                 } else {
-                    alert("Ошибка при создании счета.");
+                    alert("Ошибка: " + JSON.stringify(data));
                 }
             })
             .catch(error => {
                 console.error('Ошибка:', error);
-                alert("Ошибка сети. Попробуйте позже.");
+                alert("Ошибка сети. Попробуйте через минуту (сервер просыпается).");
             });
         }
 

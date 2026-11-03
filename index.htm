@@ -13,7 +13,6 @@
     <title>Wolf Trade - Official</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        /* ... (Все стили точно такие же, как в прошлый раз, я не менял дизайн) ... */
         :root { --bg-main: #05070a; --bg-panel: #0f141e; --bg-header: #161c2a; --text-main: #e2e8f0; --text-muted: #64748b; --green: #00ff88; --red: #ff3366; --border: #1e293b; --gold: #fbbf24; --blue: #3b82f6; --purple: #a855f7; }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { background-color: var(--bg-main); color: var(--text-main); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 11px; height: 100vh; display: flex; flex-direction: column; overflow: hidden; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
@@ -101,7 +100,6 @@
     </style>
 </head>
 <body>
-    <!-- Защита домена и правого клика -->
     <script>
         const ALLOWED_DOMAINS = ["github.io", "localhost", "t.me", "127.0.0.1", "web.telegram.org", "telegram.org"];
         const isAllowed = ALLOWED_DOMAINS.some(domain => window.location.hostname.includes(domain));
@@ -196,7 +194,7 @@
         <div style="font-size: 50px; margin: 20px 0;">💎</div>
         <button class="btn-buy" style="width:100%; padding: 15px; font-size: 14px;" onclick="claimDaily()">Забрать награду</button>
         
-        <!-- НОВАЯ КНОПКА ПОКУПКИ STARS -->
+        <!-- КНОПКА ПОКУПКИ STARS -->
         <button class="ad-btn" style="width:100%; padding: 15px; margin-top: 10px; background: var(--gold); color: #000;" onclick="buyStars()">⭐ Купить 100 Stars (50₽)</button>
 
         <div style="margin-top: 20px; border-top: 1px solid var(--border); padding-top: 20px;">
@@ -242,15 +240,35 @@
 
         function openChannel() { if (tg) { tg.openTelegramLink(CHANNEL_URL); } else { window.open(CHANNEL_URL, "_blank"); } }
 
-        // --- НОВАЯ ФУНКЦИЯ ПОКУПКИ STARS ---
+        // --- ФУНКЦИЯ ПОКУПКИ STARS ---
         function buyStars() {
-            if (!tg || !tg.initData) { alert("Покупки доступны только в Telegram!"); return; }
-            tg.showPopup({
-                title: "Покупка Stars",
-                message: "Хочешь купить 100 Stars за 50₽?",
-                buttons: [ {id: "buy", type: "default", text: "Купить"}, {id: "cancel", type: "cancel", text: "Отмена"} ]
-            }, function(buttonId) {
-                if (buttonId === "buy") { alert("Тут должно открыться окно оплаты Telegram. (В разработке)"); }
+            if (!tg || !tg.initData) {
+                alert("Покупки доступны только в Telegram!");
+                return;
+            }
+
+            let chat_id = tgUser ? tgUser.id : null;
+            if (!chat_id) {
+                alert("Ошибка: Не удалось получить ID игрока.");
+                return;
+            }
+
+            fetch('https://bot-server-1-tdqa.onrender.com/create_invoice', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ chat_id: chat_id })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'invoice_sent') {
+                    alert("Счет создан! Проверьте сообщения в боте для оплаты.");
+                } else {
+                    alert("Ошибка при создании счета.");
+                }
+            })
+            .catch(error => {
+                console.error('Ошибка:', error);
+                alert("Ошибка сети. Попробуйте позже.");
             });
         }
 

@@ -139,6 +139,7 @@
         </div>
         <div class="header-btns">
             <div class="stat-item"><div class="stat-label">Баланс</div><div class="stat-value" id="top-balance">$50,000</div></div>
+            <!-- КНОПКА ПЕРЕХОДА В КАНАЛ -->
             <button class="channel-btn" onclick="openChannel()">📢</button>
             <button class="phone-btn" onclick="openPhone()">📱</button>
         </div>
@@ -218,7 +219,9 @@
         let tgUser = (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) ? tg.initDataUnsafe.user : null;
         if (tg) tg.expand();
 
+        // ССЫЛКА НА ТВОЙ КАНАЛ (ЗАМЕНИ НА СВОЙ, КОГДА СОЗДАШЬ)
         const CHANNEL_URL = "https://t.me/wolf_trade_news"; 
+        
         const assets = { 'BTC': { icon: '₿', name: 'BTC/USDT', basePrice: 56405.39 }, 'ETH': { icon: 'Ξ', name: 'ETH/USDT', basePrice: 3000.00 }, 'TON': { icon: '💎', name: 'TON/USDT', basePrice: 5.50 }, 'SOL': { icon: '◎', name: 'SOL/USDT', basePrice: 150.00 } };
         let currentAsset = 'BTC'; let currentPrice = assets['BTC'].basePrice; let balance = 50000.00; let wallet = { 'BTC': 0, 'ETH': 0, 'TON': 0, 'SOL': 0 }; let candles = []; let debt = 0; let passiveIncome = 0; let profitMultiplier = 1; let lastClaimDate = null; let streakCount = 0; let insiderActive = false; let insiderTarget = 0; let insiderTimer = 0; let activeTrade = null; let tradeInterval = null; let playerName = tgUser ? tgUser.first_name : "verloren";
 

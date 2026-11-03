@@ -12,7 +12,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Wolf Trade - Official</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <!-- СКРИПТ РЕКЛАМЫ ONCLICKA -->
     <script src="https://js.onclckvd.com/in-stream-ad-admanager/tma.js"></script>
     <style>
         :root { --bg-main: #05070a; --bg-panel: #0f141e; --bg-header: #161c2a; --text-main: #e2e8f0; --text-muted: #64748b; --green: #00ff88; --red: #ff3366; --border: #1e293b; --gold: #fbbf24; --blue: #3b82f6; --purple: #a855f7; }
@@ -134,7 +133,7 @@
             <div class="dropdown" id="dropdown">
                 <div class="dropdown-item" onclick="selectAsset('BTC')"><span>BTC/USDT</span><span>₿</span></div>
                 <div class="dropdown-item" onclick="selectAsset('ETH')"><span>ETH/USDT</span><span>Ξ</span></div>
-                <div class="dropdown-item" onclick="selectAsset('TON')"><span>TON/USDT</span><span>💎</span></div>
+                <div class="dropdown-item" onclick="selectAsset('TON')"><span>TON</span><span>💎</span></div>
                 <div class="dropdown-item" onclick="selectAsset('SOL')"><span>SOL/USDT</span><span>◎</span></div>
             </div>
         </div>
@@ -151,6 +150,9 @@
     </div>
 
     <div class="debt-banner" id="debt-banner">⚠️ Долг бандиту: <span id="debt-amount">$0</span>. Торговля заблокирована!</div>
+    <button id="repay-btn" onclick="repayDebt()" style="display:none; width:100%; padding:10px; background:var(--red); color:#fff; border:none; border-radius:4px; margin:5px 0;">
+        Вернуть долг (<span id="debt-repay-amount">$0</span>)
+    </button>
 
     <div class="tabs">
         <div class="tab active" onclick="switchTab('tab-trade', this)">Терминал</div>
@@ -249,32 +251,32 @@
 
         function claimDaily() { let today = new Date().toDateString(); if (lastClaimDate === today) { addLog("Бонус уже забран!", "error"); return; } let yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1); if (lastClaimDate === yesterday.toDateString()) streakCount++; else streakCount = 1; if (streakCount > 7) streakCount = 1; let reward = 10000 * streakCount; balance += reward; lastClaimDate = today; addLog(`Бонус получен! +$${reward.toLocaleString()}`, "success"); saveGame(); updateUI(); document.getElementById('streak-text').innerText = `День ${streakCount} из 7`; }
 
-        // --- ФУНКЦИЯ РЕКЛАМЫ (ONCLICKA) ---
+        // --- ФУНКЦИЯ РЕКЛАМЫ (С КУЛДАУНОМ) ---
+        let lastAdTime = 0;
+        const AD_COOLDOWN = 5 * 60 * 1000;
+
         async function watchAd(action) {
+            const now = Date.now();
+            if (now - lastAdTime < AD_COOLDOWN) {
+                const remaining = Math.ceil((AD_COOLDOWN - (now - lastAdTime)) / 1000);
+                alert(`Подождите ${remaining} секунд перед следующим просмотром.`);
+                return;
+            }
+
             if (!showAdFunc) {
-                alert("Реклама не загрузилась. Проверьте интернет и попробуйте позже.");
+                alert("Реклама не загрузилась. Попробуйте позже.");
                 return;
             }
 
             try {
-                // Вызываем функцию показа рекламы
                 await showAdFunc();
-                
-                // Если дошли сюда — реклама досмотрена
-                if (action === 'money') { 
-                    balance += 10000; 
-                    addLog("+$10,000 за рекламу", "success"); 
-                } else if (action === 'debt') { 
-                    debt = 0; 
-                    addLog("Долг прощен!", "success"); 
-                    checkDebtStatus(); 
-                }
-                saveGame(); 
-                updateUI();
+                lastAdTime = Date.now();
+                if (action === 'money') { balance += 10000; addLog("+$10,000 за рекламу", "success"); }
+                else if (action === 'debt') { debt = 0; addLog("Долг прощен!", "success"); checkDebtStatus(); }
+                saveGame(); updateUI();
                 alert("Спасибо за просмотр! Награда начислена.");
-                
             } catch (error) {
-                console.error("Ошибка рекламы OnClickA:", error);
+                console.error("Ошибка рекламы:", error);
                 alert("Реклама временно недоступна. Награда не начислена.");
             }
         }
@@ -315,7 +317,38 @@
         function callInsider() { if (balance >= 10000) { balance -= 10000; insiderActive = true; insiderTarget = currentPrice + (Math.random() - 0.4) * 2000; insiderTimer = 10; addLog("Мистер X: 'Покупай!'", "success"); closePhone(); saveGame(); updateUI(); } else { addLog("Нет $10,000!", "error"); } }
         function takeLoan() { balance += 100000; debt += 150000; addLog("Взят кредит. Долг: $150,000", "error"); closePhone(); saveGame(); updateUI(); checkDebtStatus(); }
 
-        function checkDebtStatus() { let buyBtn = document.getElementById('btn-buy'); let sellBtn = document.getElementById('btn-sell'); let banner = document.getElementById('debt-banner'); if (debt > 0) { if(buyBtn) buyBtn.disabled = true; if(sellBtn) sellBtn.disabled = true; if(banner) { banner.classList.add('active'); document.getElementById('debt-amount').innerText = "$" + debt.toFixed(0); } } else { if(buyBtn) buyBtn.disabled = false; if(sellBtn) sellBtn.disabled = false; if(banner) banner.classList.remove('active'); } }
+        function checkDebtStatus() {
+            let buyBtn = document.getElementById('btn-buy');
+            let sellBtn = document.getElementById('btn-sell');
+            let banner = document.getElementById('debt-banner');
+            let repayBtn = document.getElementById('repay-btn');
+            
+            if (debt > 0) { 
+                if(buyBtn) buyBtn.disabled = true; 
+                if(sellBtn) sellBtn.disabled = true; 
+                if(banner) { banner.classList.add('active'); document.getElementById('debt-amount').innerText = "$" + debt.toFixed(0); }
+                if(repayBtn) { repayBtn.style.display = 'block'; document.getElementById('debt-repay-amount').innerText = "$" + debt.toFixed(0); }
+            } else { 
+                if(buyBtn) buyBtn.disabled = false; 
+                if(sellBtn) sellBtn.disabled = false; 
+                if(banner) banner.classList.remove('active');
+                if(repayBtn) repayBtn.style.display = 'none';
+            }
+        }
+
+        function repayDebt() {
+            if (debt <= 0) return;
+            if (balance >= debt) {
+                balance -= debt;
+                debt = 0;
+                addLog("Долг полностью погашен!", "success");
+                saveGame();
+                updateUI();
+                checkDebtStatus();
+            } else {
+                alert("У вас недостаточно денег для погашения долга!");
+            }
+        }
 
         function resizeCanvas() { if(canvas && canvas.parentElement) { let w = canvas.parentElement.clientWidth; let h = canvas.parentElement.clientHeight; if (w > 0 && h > 0) { canvas.width = w; canvas.height = h; drawChart(); } } }
         window.addEventListener('resize', resizeCanvas); setTimeout(resizeCanvas, 200); 
@@ -333,7 +366,7 @@
         document.addEventListener('click', function(e) { let dd = document.getElementById('dropdown'); let sel = document.querySelector('.asset-selector'); if (dd && sel && !sel.contains(e.target)) dd.classList.remove('active'); });
         function selectAsset(symbol) { if (activeTrade) { addLog("Нельзя менять актив во время сделки!", "error"); return; } currentAsset = symbol; safeSetText('current-asset', `${assets[symbol].name} ▼`); let dd = document.getElementById('dropdown'); if (dd) dd.classList.remove('active'); resetCandles(); saveGame(); updateUI(); }
 
-        function gameLoop() { let lastClose = currentPrice; let change = (Math.random() - 0.5) * (currentPrice * 0.002); let close = lastClose + change; candles.push({ open: lastClose, high: Math.max(lastClose, close), low: Math.min(lastClose, close), close }); if (candles.length > 40) candles.shift(); if (debt > 0) debt *= 1.0005; if (passiveIncome > 0) balance += passiveIncome; if (insiderActive) { currentPrice = currentPrice * 0.95 + insiderTarget * 0.05; insiderTimer--; if (insiderTimer <= 0) { insiderActive = false; addLog("Действие инсайда закончилось.", "info"); } } else { currentPrice = close; } updateUI(); }
+        function gameLoop() { let lastClose = currentPrice; let change = (Math.random() - 0.5) * (currentPrice * 0.002); let close = lastClose + change; candles.push({ open: lastClose, high: Math.max(lastClose, close), low: Math.min(lastClose, close), close }); if (candles.length > 40) candles.shift(); if (debt > 0) debt *= 1.001; if (passiveIncome > 0) balance += passiveIncome; if (insiderActive) { currentPrice = currentPrice * 0.95 + insiderTarget * 0.05; insiderTimer--; if (insiderTimer <= 0) { insiderActive = false; addLog("Действие инсайда закончилось.", "info"); } } else { currentPrice = close; } updateUI(); }
 
         window.onload = () => { loadGame(); setTimeout(resizeCanvas, 100); updateUI(); setInterval(gameLoop, 1000); };
     </script>

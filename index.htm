@@ -1,80 +1,332 @@
+<!--
+    ======================================================
+    WOLF TRADE
+    Авторское право (c) 2026 verloren
+    Все права защищены.
+    ======================================================
+-->
 <!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Wolf Trade - Real Top</title>
+    <title>Wolf Trade - Official</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://sad.adsgram.ai/js/sad.min.js"></script>
     <style>
-        /* ... (все стили остаются без изменений, они длинные, я не буду их дублировать, они у тебя уже есть) ... */
         :root { --bg-main: #05070a; --bg-panel: #0f141e; --bg-header: #161c2a; --text-main: #e2e8f0; --text-muted: #64748b; --green: #00ff88; --red: #ff3366; --border: #1e293b; --gold: #fbbf24; --blue: #3b82f6; --purple: #a855f7; }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { background-color: var(--bg-main); color: var(--text-main); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 11px; height: 100vh; display: flex; flex-direction: column; overflow: hidden; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
-        /* ... (остальные стили) ... */
+        .tutorial-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 5000; display: none; justify-content: center; align-items: center; backdrop-filter: blur(3px); }
+        .tutorial-overlay.active { display: flex; }
+        .tutorial-box { background: var(--bg-header); border: 1px solid var(--gold); border-radius: 12px; padding: 20px; width: 85%; max-width: 300px; text-align: center; position: relative; }
+        .tutorial-title { font-size: 16px; font-weight: bold; color: var(--gold); margin-bottom: 10px; }
+        .tutorial-text { color: #fff; line-height: 1.5; margin-bottom: 15px; font-size: 12px;}
+        .tutorial-btn { background: var(--gold); color: #000; padding: 8px 20px; border-radius: 20px; font-weight: bold; border: none; cursor: pointer; }
+        .header { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: var(--bg-header); border-bottom: 1px solid var(--border); z-index: 10; flex-shrink: 0; }
+        .asset-selector { display: flex; align-items: center; gap: 5px; cursor: pointer; position: relative;}
+        .asset-name { font-size: 14px; font-weight: 800; color: #fff; }
+        .asset-price { font-size: 15px; color: var(--green); font-weight: bold; }
+        .dropdown { position: absolute; top: 100%; left: 0; background: var(--bg-panel); border: 1px solid var(--border); border-radius: 6px; width: 150px; z-index: 100; display: none; flex-direction: column; }
+        .dropdown.active { display: flex; }
+        .dropdown-item { padding: 8px 12px; cursor: pointer; border-bottom: 1px solid #1a1e28; display: flex; justify-content: space-between; font-weight: bold;}
+        .dropdown-item:hover { background: #1a1e28; }
+        .header-btns { display: flex; gap: 10px; align-items: center; }
+        .phone-btn { font-size: 20px; cursor: pointer; background: none; border: none; color: var(--gold); }
+        .channel-btn { font-size: 18px; cursor: pointer; background: none; border: none; color: var(--blue); }
+        .stat-item { text-align: right; }
+        .stat-label { font-size: 9px; color: var(--text-muted); }
+        .stat-value { font-size: 13px; color: #fff; font-weight: bold; }
+        .goal-bar { background: linear-gradient(90deg, #1e222d, #151924); padding: 4px 12px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+        .goal-text { color: var(--gold); font-weight: bold; font-size: 10px; }
+        .goal-progress { width: 80px; height: 4px; background: #333; border-radius: 2px; overflow: hidden; }
+        .goal-fill { height: 100%; background: var(--gold); width: 0%; transition: width 0.5s; }
+        .tabs { display: flex; background: var(--bg-panel); border-bottom: 1px solid var(--border); flex-shrink: 0; overflow-x: auto;}
+        .tab { flex: 1; text-align: center; padding: 6px; cursor: pointer; font-weight: bold; color: var(--text-muted); border-bottom: 2px solid transparent; white-space: nowrap; font-size: 10px;}
+        .tab.active { color: #fff; border-bottom-color: var(--blue); }
+        .tab-content { display: none; flex: 1; flex-direction: column; overflow-y: auto; }
+        .tab-content.active { display: flex; }
+        .main-content { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-height: 0; }
+        .chart-container { flex: 2; position: relative; min-height: 150px; border-bottom: 1px solid var(--border); background: #000; }
+        canvas { width: 100%; height: 100%; display: block; pointer-events: none; }
+        .chart-price-label { position: absolute; top: 10px; left: 10px; color: var(--green); font-weight: bold; font-size: 18px; text-shadow: 0 0 10px rgba(0, 255, 136, 0.5); pointer-events: none; }
+        .active-trade-panel { background: rgba(251, 191, 36, 0.1); border: 1px solid var(--gold); margin: 4px 10px; padding: 6px; border-radius: 6px; display: none; text-align: center; animation: pulse 2s infinite; }
+        .active-trade-panel.active { display: block; }
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.4); } 70% { box-shadow: 0 0 0 10px rgba(251, 191, 36, 0); } 100% { box-shadow: 0 0 0 0 rgba(251, 191, 36, 0); } }
+        .timer-display { font-size: 18px; font-weight: bold; color: var(--gold); margin: 0; }
+        .btn-close-trade { background: var(--red); color: #fff; padding: 4px 8px; border-radius: 4px; font-size: 9px; margin-top: 3px; border: none; cursor: pointer; }
+        .debt-banner { background: rgba(255, 51, 102, 0.2); border: 1px solid var(--red); color: var(--red); font-weight: bold; text-align: center; padding: 4px; font-size: 10px; display: none; }
+        .debt-banner.active { display: block; }
         .leaderboard-row { display: flex; justify-content: space-between; padding: 10px 15px; border-bottom: 1px solid var(--border); font-size: 12px; }
         .leaderboard-row.you { background: rgba(251, 191, 36, 0.1); border-left: 3px solid var(--gold); font-weight: bold; }
         .lb-rank { color: var(--text-muted); width: 25px; }
         .lb-name { flex: 1; color: #fff; }
         .lb-money { font-weight: bold; color: var(--green); }
-        /* ... (все остальные стили, включая кнопки, график и т.д.) ... */
+        .phone-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 2000; display: none; flex-direction: column; padding: 20px; overflow-y: auto; }
+        .phone-overlay.active { display: flex; }
+        .phone-header { display: flex; justify-content: space-between; align-items: center; color: #fff; font-size: 18px; font-weight: bold; margin-bottom: 20px; border-bottom: 1px solid #333; padding-bottom: 10px;}
+        .close-phone { font-size: 24px; cursor: pointer; color: var(--red); }
+        .contact-card { background: var(--bg-panel); border: 1px solid var(--border); border-radius: 10px; padding: 15px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .contact-info { display: flex; align-items: center; gap: 10px; }
+        .contact-avatar { width: 40px; height: 40px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 20px; background: var(--bg-header); }
+        .contact-name { font-size: 14px; font-weight: bold; color: #fff; }
+        .contact-desc { font-size: 10px; color: var(--text-muted); margin-top: 3px; }
+        .call-btn { background: var(--green); color: #000; padding: 8px 15px; border-radius: 20px; font-weight: bold; border: none; cursor: pointer; }
+        .account-row { display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid var(--border); font-size: 12px; }
+        .account-row span:last-child { font-weight: bold; color: #fff; }
+        .invest-card { background: var(--bg-panel); border: 1px solid var(--border); border-radius: 6px; padding: 15px; margin: 10px; }
+        .invest-btn { background: var(--purple); color: #fff; padding: 10px; border-radius: 4px; width: 100%; margin-top: 10px; font-weight: bold; cursor: pointer; border: none;}
+        .shop-item { background: var(--bg-panel); border: 1px solid var(--border); border-radius: 6px; padding: 10px; margin: 10px; display: flex; justify-content: space-between; align-items: center; }
+        .btn-buy-shop { background: var(--green); color: #000; padding: 8px 15px; border-radius: 4px; font-weight: bold; border: none; cursor: pointer; }
+        .ad-btn { background: var(--blue); color: #fff; padding: 8px 15px; border-radius: 4px; font-weight: bold; border: none; cursor: pointer; margin-left: 5px;}
+        .trade-panel { display: flex; flex-direction: column; background: var(--bg-header); padding: 6px 10px; gap: 5px; border-top: 1px solid var(--border); flex-shrink: 0;}
+        .time-input-group { display: flex; align-items: center; gap: 10px; background: #000; padding: 4px; border-radius: 4px; border: 1px solid var(--border); }
+        .time-input-group label { color: var(--text-muted); font-size: 10px; }
+        .time-input-group input { flex: 1; background: transparent; border: none; color: var(--gold); font-size: 14px; font-weight: bold; text-align: center; outline: none; }
+        .time-input-group span { color: var(--text-muted); font-size: 10px; }
+        .trade-row { display: flex; gap: 10px; }
+        .trade-section { flex: 1; display: flex; flex-direction: column; gap: 3px; }
+        .trade-header { font-weight: bold; color: var(--text-muted); display: flex; justify-content: space-between; font-size: 9px;}
+        input { flex: 1; background: #000; border: 1px solid var(--border); color: #fff; padding: 6px; border-radius: 4px; text-align: center; font-size: 11px; font-weight: bold;}
+        button { padding: 8px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; color: #fff; font-size: 11px; transition: 0.1s;}
+        button:active { transform: scale(0.95); }
+        .btn-buy { background: var(--green); color: #000;}
+        .btn-sell { background: var(--red); }
+        .btn-buy:disabled, .btn-sell:disabled { background: #555; cursor: not-allowed; }
+        .log-panel { height: 30px; background: rgba(15, 20, 30, 0.8); border-top: 1px solid var(--border); overflow: hidden; padding: 2px 5px; font-size: 9px; flex-shrink: 0;}
+        .log-item { color: var(--text-muted); margin-bottom: 0px; }
+        .log-item.success { color: var(--green); }
+        .log-item.error { color: var(--red); }
+        .copyright-plate { text-align:center; font-size:8px; color:#444; padding: 2px; background: var(--bg-main); pointer-events: none; z-index: 9999; }
     </style>
 </head>
 <body>
-    <!-- ... (весь HTML код с вкладками, графиком, кнопками — остается без изменений) ... -->
+    <script>
+        const ALLOWED_DOMAINS = ["github.io", "localhost", "t.me", "127.0.0.1", "web.telegram.org", "telegram.org"];
+        const isAllowed = ALLOWED_DOMAINS.some(domain => window.location.hostname.includes(domain));
+        if (!isAllowed) { document.body.innerHTML = "<h1 style='color:red;text-align:center;margin-top:50px;'>КРАЖА КОНТЕНТА</h1>"; throw new Error(); }
+        document.addEventListener('contextmenu', event => event.preventDefault());
+        document.addEventListener('keydown', function(e) { if (e.key === 'F12' || (e.ctrlKey && e.shiftKey && e.key === 'I')) e.preventDefault(); });
+    </script>
+
+    <div class="copyright-plate">© 2026 verloren. Все права защищены.</div>
+
+    <div class="tutorial-overlay" id="tutorial">
+        <div class="tutorial-box">
+            <div class="tutorial-title" id="tut-title">Добро пожаловать!</div>
+            <div class="tutorial-text" id="tut-text">Перед тобой симулятор трейдинга.</div>
+            <button class="tutorial-btn" onclick="nextTutorial()" id="tut-btn">Далее</button>
+        </div>
+    </div>
+
+    <div class="phone-overlay" id="phone-overlay">
+        <div class="phone-header"><span>📱 Контакты</span><span class="close-phone" onclick="closePhone()">✕</span></div>
+        <div id="contact-list"></div>
+    </div>
+
+    <div class="header">
+        <div class="asset-selector" onclick="toggleDropdown()">
+            <div>
+                <div class="asset-name" id="current-asset">BTC/USDT ▼</div>
+                <div class="asset-price" id="top-price">$---</div>
+            </div>
+            <div class="dropdown" id="dropdown">
+                <div class="dropdown-item" onclick="selectAsset('BTC')"><span>BTC/USDT</span><span>₿</span></div>
+                <div class="dropdown-item" onclick="selectAsset('ETH')"><span>ETH/USDT</span><span>Ξ</span></div>
+                <div class="dropdown-item" onclick="selectAsset('TON')"><span>TON/USDT</span><span>💎</span></div>
+                <div class="dropdown-item" onclick="selectAsset('SOL')"><span>SOL/USDT</span><span>◎</span></div>
+            </div>
+        </div>
+        <div class="header-btns">
+            <div class="stat-item"><div class="stat-label">Баланс</div><div class="stat-value" id="top-balance">$50,000</div></div>
+            <button class="channel-btn" onclick="openChannel()">📢</button>
+            <button class="phone-btn" onclick="openPhone()">📱</button>
+        </div>
+    </div>
+
+    <div class="goal-bar">
+        <div class="goal-text" id="goal-text">🎯 Цель: Купить особняк ($1,000,000)</div>
+        <div class="goal-progress"><div class="goal-fill" id="goal-fill"></div></div>
+    </div>
+
+    <div class="debt-banner" id="debt-banner">⚠️ Долг бандиту: <span id="debt-amount">$0</span>. Торговля заблокирована!</div>
+
+    <div class="tabs">
+        <div class="tab active" onclick="switchTab('tab-trade', this)">Терминал</div>
+        <div class="tab" onclick="switchTab('tab-shop', this)">Офис</div>
+        <div class="tab" onclick="switchTab('tab-accounts', this)">Счета</div>
+        <div class="tab" onclick="switchTab('tab-invest', this)">Бонус</div>
+        <div class="tab" onclick="switchTab('tab-leaderboard', this)">Топ 🏆</div>
+    </div>
+
+    <div id="tab-trade" class="tab-content active">
+        <div class="main-content">
+            <div class="chart-container" id="chart-container"><div class="chart-price-label" id="chart-price-label">$0.00</div><canvas id="candlestick-chart"></canvas></div>
+            <div class="active-trade-panel" id="active-trade">
+                <div style="color:var(--gold); font-weight:bold; font-size:10px;" id="active-trade-type">ЛОНГ</div>
+                <div class="timer-display" id="trade-timer">00:00</div>
+                <div style="font-size:9px;">Вход: <span id="trade-entry">$0</span> | Текущая: <span id="trade-current">$0</span></div>
+                <button class="btn-close-trade" onclick="forceCloseTrade()">Закрыть досрочно</button>
+            </div>
+            <div class="log-panel" id="log-panel"></div>
+        </div>
+        <div class="trade-panel">
+            <div class="time-input-group"><label>Время:</label><input type="number" id="trade-time-input" value="30" min="10" max="3600"><span>сек</span></div>
+            <div class="trade-row">
+                <div class="trade-section"><div class="trade-header"><span style="color:var(--green);">BUY</span></div><input type="number" id="buy-amount" placeholder="Кол-во"><button class="btn-buy" id="btn-buy" onclick="openTrade('buy')">В лонг</button></div>
+                <div class="trade-section"><div class="trade-header"><span style="color:var(--red);">SELL</span></div><input type="number" id="sell-amount" placeholder="Кол-во"><button class="btn-sell" id="btn-sell" onclick="openTrade('sell')">В шорт</button></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="tab-shop" class="tab-content" style="padding: 10px;">
+        <div class="shop-item"><div class="shop-info"><div class="shop-title">Наем брокера (Lvl 1)</div><div class="shop-desc">+$10/сек к пассивному доходу.</div></div><button class="btn-buy-shop" onclick="buyBroker()">$10,000</button></div>
+        <div class="shop-item"><div class="shop-info"><div class="shop-title">Сброс долга (Реклама)</div><div class="shop-desc">Бандит простит долг за рекламу.</div></div><button class="ad-btn" onclick="watchAd('debt')">📺 Реклама</button></div>
+    </div>
+
+    <div id="tab-accounts" class="tab-content" style="padding: 10px;">
+        <div style="text-align:center; margin-bottom: 15px;"><div style="font-size:10px; color:var(--text-muted);">Общий баланс (USD)</div><div style="font-size:24px; font-weight:bold; color:var(--green);" id="acc-total">$50,000.00</div></div>
+        <div id="asset-list"></div>
+    </div>
+
+    <div id="tab-invest" class="tab-content" style="padding: 10px; text-align:center;">
+        <h3 style="color:#fff; margin: 20px 0;">🎁 Ежедневный Бонус</h3>
+        <p style="color:var(--text-muted); margin-bottom: 20px;" id="streak-text">День 1 из 7</p>
+        <div style="font-size: 50px; margin: 20px 0;">💎</div>
+        <button class="btn-buy" style="width:100%; padding: 15px; font-size: 14px;" onclick="claimDaily()">Забрать награду</button>
+        
+        <button class="ad-btn" style="width:100%; padding: 15px; margin-top: 10px; background: var(--gold); color: #000;" onclick="buyStars()">⭐ Купить 100 Stars (50₽)</button>
+
+        <div style="margin-top: 20px; border-top: 1px solid var(--border); padding-top: 20px;">
+            <p style="color:var(--text-muted); margin-bottom: 10px;">Хочешь больше? Смотри рекламу!</p>
+            <button class="ad-btn" style="width:100%; padding: 15px;" onclick="watchAd('money')">📺 +$10,000 за рекламу</button>
+        </div>
+    </div>
+
+    <div id="tab-leaderboard" class="tab-content">
+        <div style="text-align:center; padding: 15px; background: var(--bg-header); border-bottom: 1px solid var(--border);"><div style="font-size:14px; font-weight:bold; color:var(--gold);">🏆 Лучшие трейдеры</div></div>
+        <div id="leaderboard-list"></div>
+    </div>
+
+    <div class="copyright-plate">© 2026 verloren. Все права защищены.</div>
 
     <script>
         let tg = window.Telegram ? window.Telegram.WebApp : null;
         let tgUser = (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) ? tg.initDataUnsafe.user : null;
         if (tg) tg.expand();
 
-        const SERVER_URL = 'https://bot-server-1-tdqa.onrender.com';
-        
-        // ... (остальные переменные: balance, wallet и т.д.) ...
-
-        // --- СИНХРОНИЗАЦИЯ С СЕРВЕРОМ ---
-        function sendBalanceToServer() {
-            if (!tgUser) return;
-            fetch(`${SERVER_URL}/update_balance`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ user_id: tgUser.id, name: tgUser.first_name, balance: balance })
-            }).catch(e => console.log("Ошибка синхронизации", e));
+        // --- ИНИЦИАЛИЗАЦИЯ ADSGRAM ---
+        let adController = null;
+        try {
+            if (window.AdsGram) {
+                adController = window.AdsGram.init({ blockId: "57871" });
+            }
+        } catch (e) {
+            console.log("AdsGram SDK не загрузился.");
         }
 
-        async function fetchLeaderboard() {
+        const CHANNEL_URL = "https://t.me/wolf_trade_news"; 
+        const assets = { 'BTC': { icon: '₿', name: 'BTC/USDT', basePrice: 56405.39 }, 'ETH': { icon: 'Ξ', name: 'ETH/USDT', basePrice: 3000.00 }, 'TON': { icon: '💎', name: 'TON/USDT', basePrice: 5.50 }, 'SOL': { icon: '◎', name: 'SOL/USDT', basePrice: 150.00 } };
+        let currentAsset = 'BTC'; let currentPrice = assets['BTC'].basePrice; let balance = 50000.00; let wallet = { 'BTC': 0, 'ETH': 0, 'TON': 0, 'SOL': 0 }; let candles = []; let debt = 0; let passiveIncome = 0; let profitMultiplier = 1; let lastClaimDate = null; let streakCount = 0; let insiderActive = false; let insiderTarget = 0; let insiderTimer = 0; let activeTrade = null; let tradeInterval = null; let playerName = tgUser ? tgUser.first_name : "verloren";
+
+        const tutorialSteps = [ { title: "Добро пожаловать!", text: "Ты — начинающий трейдер. Твоя цель — заработать $1,000,000 и купить особняк." }, { title: "Как торговать?", text: "Введи количество и время внизу, затем нажми 'В лонг' (на рост) или 'В шорт' (на падение)." }, { title: "Оффлайн-доход", text: "Покупай брокеров в 'Офисе'. Они приносят деньги, даже когда ты спишь!" } ];
+        let currentTut = 0;
+        function showTutorial() { document.getElementById('tut-title').innerText = tutorialSteps[currentTut].title; document.getElementById('tut-text').innerText = tutorialSteps[currentTut].text; document.getElementById('tut-btn').innerText = currentTut === tutorialSteps.length - 1 ? "Погнали!" : "Далее"; document.getElementById('tutorial').classList.add('active'); }
+        function nextTutorial() { currentTut++; if (currentTut < tutorialSteps.length) showTutorial(); else { document.getElementById('tutorial').classList.remove('active'); localStorage.setItem('tutorialPassed', 'true'); checkOfflineIncome(); } }
+        function safeSetText(id, text) { let el = document.getElementById(id); if (el) el.innerText = text; }
+
+        function checkOfflineIncome() { let lastTime = localStorage.getItem('lastSaveTime'); if (lastTime && passiveIncome > 0) { let now = Date.now(); let diffSeconds = Math.floor((now - parseInt(lastTime)) / 1000); if (diffSeconds > 28800) diffSeconds = 28800; if (diffSeconds > 60) { let earned = diffSeconds * passiveIncome; if (earned > 0) { balance += earned; showModalBox("С возвращением!", `Пока тебя не было, твои брокеры заработали:<br><br><span style="color:var(--green); font-size:20px; font-weight:bold;">+$${earned.toLocaleString()}</span>`); saveGame(); updateUI(); } } } }
+        function showModalBox(title, text) { document.getElementById('tut-title').innerText = title; document.getElementById('tut-text').innerHTML = text; document.getElementById('tut-btn').innerText = "Забрать"; document.getElementById('tutorial').classList.add('active'); document.getElementById('tut-btn').onclick = () => { document.getElementById('tutorial').classList.remove('active'); }; }
+        function saveGame() { localStorage.setItem('lastSaveTime', Date.now()); let saveData = { balance, wallet, debt, currentAsset, passiveIncome, profitMultiplier, lastClaimDate, streakCount }; localStorage.setItem('wolfTradeSave', JSON.stringify(saveData)); }
+
+        function loadGame() { let saved = localStorage.getItem('wolfTradeSave'); if (saved) { try { let data = JSON.parse(saved); balance = data.balance || 50000; wallet = data.wallet || { 'BTC': 0, 'ETH': 0, 'TON': 0, 'SOL': 0 }; debt = data.debt || 0; currentAsset = data.currentAsset || 'BTC'; passiveIncome = data.passiveIncome || 0; profitMultiplier = data.profitMultiplier || 1; lastClaimDate = data.lastClaimDate || null; streakCount = data.streakCount || 0; safeSetText('current-asset', `${assets[currentAsset].name} ▼`); } catch (e) { console.log("Ошибка загрузки", e); } } resetCandles(); if (!localStorage.getItem('tutorialPassed')) showTutorial(); else checkOfflineIncome(); }
+        function resetCandles() { candles = []; let p = assets[currentAsset].basePrice; for (let i = 0; i < 40; i++) { let open = p; let close = open + (Math.random() - 0.5) * (p * 0.005); candles.push({ open, high: Math.max(open, close), low: Math.min(open, close), close }); p = close; } currentPrice = candles[candles.length - 1].close; }
+
+        setInterval(saveGame, 5000);
+
+        function claimDaily() { let today = new Date().toDateString(); if (lastClaimDate === today) { addLog("Бонус уже забран!", "error"); return; } let yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1); if (lastClaimDate === yesterday.toDateString()) streakCount++; else streakCount = 1; if (streakCount > 7) streakCount = 1; let reward = 10000 * streakCount; balance += reward; lastClaimDate = today; addLog(`Бонус получен! +$${reward.toLocaleString()}`, "success"); saveGame(); updateUI(); document.getElementById('streak-text').innerText = `День ${streakCount} из 7`; }
+
+        // --- ФУНКЦИЯ РЕКЛАМЫ (ADSGRAM) ---
+        async function watchAd(action) {
+            if (!adController) {
+                alert("Реклама доступна только в Telegram!");
+                return;
+            }
+
             try {
-                const res = await fetch(`${SERVER_URL}/get_leaderboard`);
-                const data = await res.json();
-                renderLeaderboard(data);
-            } catch (e) { console.log("Ошибка загрузки топа", e); }
+                const result = await adController.show();
+                if (result.done) {
+                    if (action === 'money') { balance += 10000; addLog("+$10,000 за рекламу", "success"); }
+                    else if (action === 'debt') { debt = 0; addLog("Долг прощен!", "success"); checkDebtStatus(); }
+                    saveGame(); updateUI();
+                    alert("Спасибо за просмотр! Награда начислена.");
+                } else {
+                    alert("Вы не досмотрели рекламу. Награда не начислена.");
+                }
+            } catch (error) {
+                console.error("Ошибка рекламы:", error);
+                alert("Реклама недоступна. Попробуйте позже.");
+            }
         }
 
-        function renderLeaderboard(players) {
-            let html = '';
-            players.forEach((p, index) => {
-                let rank = index + 1;
-                let medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : rank;
-                let isYou = tgUser && p.name === tgUser.first_name; // Простое сравнение по имени
-                html += `<div class="leaderboard-row ${isYou ? 'you' : ''}">
-                    <div class="lb-rank">${medal}</div>
-                    <div class="lb-name">${p.name}</div>
-                    <div class="lb-money">$${Math.floor(p.balance).toLocaleString()}</div>
-                </div>`;
-            });
-            document.getElementById('leaderboard-list').innerHTML = html;
+        function openChannel() { if (tg) { tg.openTelegramLink(CHANNEL_URL); } else { window.open(CHANNEL_URL, "_blank"); } }
+
+        function buyStars() {
+            if (!tg || !tg.initData) { alert("Покупки доступны только в Telegram!"); return; }
+            let chat_id = tgUser ? tgUser.id : null;
+            if (!chat_id) { alert("Ошибка: Не удалось получить ID игрока."); return; }
+            alert("Отправка запроса... Пожалуйста, подождите.");
+            fetch('https://bot-server-1-tdqa.onrender.com/create_invoice', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ chat_id: chat_id })
+            })
+            .then(response => response.json())
+            .then(data => { if (data.status === 'invoice_sent') { alert("Счет создан! Проверьте сообщения в боте."); } else { alert("Ошибка: " + JSON.stringify(data)); } })
+            .catch(error => { console.error('Ошибка:', error); alert("Ошибка сети. Попробуйте через минуту."); });
         }
 
-        // Вызывать sendBalanceToServer() при каждом изменении баланса (например, в updateUI)
-        // ... (вставь вызов sendBalanceToServer() в функцию updateUI или после каждой сделки) ...
-        
-        // Загружать топ при открытии вкладки
-        function switchTab(tabId, el) {
-            // ... (код переключения вкладок) ...
-            if (tabId === 'tab-leaderboard') fetchLeaderboard();
-        }
+        // --- СИМУЛЯЦИЯ БОТОВ ---
+        let bots = [ { name: "Донни А.", balance: 120000, isYou: false }, { name: "Мистер X", balance: 850000, isYou: false }, { name: "Бандит", balance: 300000, isYou: false }, { name: "Марк Х.", balance: 2500000, isYou: false } ];
+        function updateLeaderboard() { let allPlayers = [...bots, { name: playerName, balance: balance, isYou: true }]; allPlayers.sort((a, b) => b.balance - a.balance); let html = ''; allPlayers.forEach((p, index) => { let rank = index + 1; let medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : rank; html += `<div class="leaderboard-row ${p.isYou ? 'you' : ''}"><div class="lb-rank">${medal}</div><div class="lb-name">${p.name}</div><div class="lb-money">$${Math.floor(p.balance).toLocaleString()}</div></div>`; }); let list = document.getElementById('leaderboard-list'); if (list) list.innerHTML = html; }
+        setInterval(() => { bots.forEach(bot => { bot.balance += bot.balance * (Math.random() * 0.02 + 0.01); }); updateLeaderboard(); }, 10000);
 
-        // ... (весь остальной JS код: торговля, реклама, кредиты, туториал и т.д.) ...
+        function updateGoal() { let goal = 1000000; let percent = (balance / goal) * 100; let fill = document.getElementById('goal-fill'); if (fill) fill.style.width = `${Math.min(100, percent)}%`; if (balance >= goal) safeSetText('goal-text', "🏆 ЦЕЛЬ ДОСТИГНУТА!"); }
+        function buyBroker() { if (balance >= 10000) { balance -= 10000; passiveIncome += 10; addLog("Нанят брокер (+$10/сек)", "success"); saveGame(); updateUI(); } else { addLog("Мало денег!", "error"); } }
+
+        function openTrade(type) { if (debt > 0) { addLog("Сначала верни долг бандиту!", "error"); return; } if (activeTrade) { addLog("Закрой текущую сделку!", "error"); return; } let amount = parseFloat(document.getElementById(`${type}-amount`).value); if (isNaN(amount) || amount <= 0) { addLog("Введите количество!", "error"); return; } let timeInput = document.getElementById('trade-time-input').value; let duration = parseInt(timeInput); if (isNaN(duration) || duration < 10 || duration > 3600) { addLog("Время от 10 до 3600 сек!", "error"); return; } let totalCost = amount * currentPrice; if (type === 'buy' && balance < totalCost) { addLog("Мало денег!", "error"); return; } if (type === 'sell' && wallet[currentAsset] < amount) { addLog("Мало актива!", "error"); return; } if (type === 'buy') balance -= totalCost; else wallet[currentAsset] -= amount; activeTrade = { type: type, amount: amount, entryPrice: currentPrice, timeLeft: duration, duration: duration, symbol: currentAsset, startTime: Date.now() }; let panel = document.getElementById('active-trade'); if (panel) panel.classList.add('active'); safeSetText('active-trade-type', type === 'buy' ? `ЛОНГ ${amount} ${currentAsset}` : `ШОРТ ${amount} ${currentAsset}`); safeSetText('trade-entry', `$${currentPrice.toFixed(2)}`); addLog(`Сделка открыта на ${duration} сек.`, "success"); if (tradeInterval) clearInterval(tradeInterval); tradeInterval = setInterval(updateTradeTimer, 1000); saveGame(); }
+
+        function updateTradeTimer() { if (!activeTrade) { clearInterval(tradeInterval); return; } let elapsed = Math.floor((Date.now() - activeTrade.startTime) / 1000); activeTrade.timeLeft = activeTrade.duration - elapsed; if (activeTrade.timeLeft <= 0) { activeTrade.timeLeft = 0; closeTrade(); } else updateTradeUI(); }
+        function updateTradeUI() { if (!activeTrade) { let panel = document.getElementById('active-trade'); if (panel) panel.classList.remove('active'); return; } let mins = Math.floor(activeTrade.timeLeft / 60); let secs = activeTrade.timeLeft % 60; safeSetText('trade-timer', `${mins.toString().padStart(2,'0')}:${secs.toString().padStart(2,'0')}`); safeSetText('trade-current', `$${currentPrice.toFixed(2)}`); let currentPercent = ((currentPrice - activeTrade.entryPrice) / activeTrade.entryPrice) * 100; let color = activeTrade.type === 'buy' ? (currentPercent > 0 ? 'var(--green)' : 'var(--red)') : (currentPercent < 0 ? 'var(--green)' : 'var(--red)'); let el = document.getElementById('trade-current'); if (el) el.style.color = color; }
+
+        function closeTrade(forced = false) { if (!activeTrade) return; let currentVal = activeTrade.amount * currentPrice; let entryVal = activeTrade.amount * activeTrade.entryPrice; let profit = 0; if (activeTrade.type === 'buy') { balance += currentVal; profit = currentVal - entryVal; } else { let diff = entryVal - currentVal; balance += diff; profit = diff; } if (profit > 0) profit *= profitMultiplier; if (forced) { if (profit > 0) { let penalty = profit * 0.5; balance -= penalty; profit -= penalty; addLog(`Закрыто досрочно. Штраф $${penalty.toFixed(2)}`, "error"); } else addLog("Закрыто досрочно с убытком.", "error"); } else addLog(`Сделка закрыта! ${profit >= 0 ? 'Профит' : 'Убыток'}: $${Math.abs(profit).toFixed(2)}`, profit >= 0 ? "success" : "error"); activeTrade = null; clearInterval(tradeInterval); let panel = document.getElementById('active-trade'); if (panel) panel.classList.remove('active'); saveGame(); updateUI(); }
+
+        function forceCloseTrade() { if (activeTrade && confirm("Закрыть досрочно? Потеряешь 50% прибыли.")) closeTrade(true); }
+        function openPhone() { let p = document.getElementById('phone-overlay'); if(p) p.classList.add('active'); renderContacts(); }
+        function closePhone() { let p = document.getElementById('phone-overlay'); if(p) p.classList.remove('active'); }
+        function renderContacts() { let html = `<div class="contact-card"><div class="contact-info"><div class="contact-avatar">🕵️</div><div><div class="contact-name">Мистер X (Инсайд)</div><div class="contact-desc">Показывает тренд на 10 сек.<br>Стоимость: $10,000</div></div></div><button class="call-btn" onclick="callInsider()">Позвонить</button></div><div class="contact-card"><div class="contact-info"><div class="contact-avatar">🔫</div><div><div class="contact-name">Бандит (Кредит)</div><div class="contact-desc">Кредит $100,000.<br>Текущий долг: $${debt.toFixed(0)}</div></div></div><button class="call-btn" onclick="takeLoan()">Взять</button></div>`; let list = document.getElementById('contact-list'); if(list) list.innerHTML = html; }
+        function callInsider() { if (balance >= 10000) { balance -= 10000; insiderActive = true; insiderTarget = currentPrice + (Math.random() - 0.4) * 2000; insiderTimer = 10; addLog("Мистер X: 'Покупай!'", "success"); closePhone(); saveGame(); updateUI(); } else { addLog("Нет $10,000!", "error"); } }
+        function takeLoan() { balance += 100000; debt += 150000; addLog("Взят кредит. Долг: $150,000", "error"); closePhone(); saveGame(); updateUI(); checkDebtStatus(); }
+
+        function checkDebtStatus() { let buyBtn = document.getElementById('btn-buy'); let sellBtn = document.getElementById('btn-sell'); let banner = document.getElementById('debt-banner'); if (debt > 0) { if(buyBtn) buyBtn.disabled = true; if(sellBtn) sellBtn.disabled = true; if(banner) { banner.classList.add('active'); document.getElementById('debt-amount').innerText = "$" + debt.toFixed(0); } } else { if(buyBtn) buyBtn.disabled = false; if(sellBtn) sellBtn.disabled = false; if(banner) banner.classList.remove('active'); } }
+
+        function resizeCanvas() { if(canvas && canvas.parentElement) { let w = canvas.parentElement.clientWidth; let h = canvas.parentElement.clientHeight; if (w > 0 && h > 0) { canvas.width = w; canvas.height = h; drawChart(); } } }
+        window.addEventListener('resize', resizeCanvas); setTimeout(resizeCanvas, 200); 
+        const canvas = document.getElementById('candlestick-chart'); const ctx = canvas.getContext('2d');
+
+        function drawChart() { if (!canvas || !canvas.width || !canvas.height) return; ctx.clearRect(0, 0, canvas.width, canvas.height); if (candles.length === 0) return; let min = Math.min(...candles.map(c => c.low)); let max = Math.max(...candles.map(c => c.high)); if (insiderActive) { max = Math.max(max, insiderTarget); min = Math.min(min, insiderTarget); } let range = max - min || 1; const cw = canvas.width / candles.length; const pad = cw * 0.2; for (let i = 0; i < candles.length; i++) { let c = candles[i]; let x = i * cw + cw / 2; let yOpen = canvas.height - ((c.open - min) / range) * canvas.height; let yClose = canvas.height - ((c.close - min) / range) * canvas.height; let yHigh = canvas.height - ((c.high - min) / range) * canvas.height; let yLow = canvas.height - ((c.low - min) / range) * canvas.height; let color = c.close > c.open ? '#00ff88' : '#ff3366'; ctx.beginPath(); ctx.strokeStyle = color; ctx.moveTo(x, yHigh); ctx.lineTo(x, yLow); ctx.stroke(); ctx.fillStyle = color; ctx.fillRect(x - cw/2 + pad, Math.min(yOpen, yClose), cw - pad*2, Math.max(1, Math.abs(yOpen - yClose))); } if (insiderActive) { let last = candles[candles.length - 1]; let yLast = canvas.height - ((last.close - min) / range) * canvas.height; let yTarget = canvas.height - ((insiderTarget - min) / range) * canvas.height; ctx.beginPath(); ctx.strokeStyle = '#fbbf24'; ctx.lineWidth = 2; ctx.setLineDash([5, 5]); ctx.moveTo(canvas.width - cw, yLast); ctx.lineTo(canvas.width, yTarget); ctx.stroke(); ctx.setLineDash([]); } safeSetText('chart-price-label', `$${currentPrice.toFixed(2)}`); }
+
+        function updateUI() { safeSetText('top-price', `$${currentPrice.toFixed(2)}`); safeSetText('top-balance', `$${balance.toFixed(2)}`); let totalAssets = 0; let html = ''; for (let sym in wallet) { let value = wallet[sym] * (sym === currentAsset ? currentPrice : assets[sym].basePrice); totalAssets += value; html += `<div class="account-row"><span>${assets[sym].icon} ${sym}</span><span>${wallet[sym].toFixed(4)} ($${value.toFixed(2)})</span></div>`; } safeSetText('acc-total', `$${(balance + totalAssets).toFixed(2)}`); let al = document.getElementById('asset-list'); if (al) al.innerHTML = html; updateGoal(); updateTradeUI(); drawChart(); checkDebtStatus(); updateLeaderboard(); }
+
+        function addLog(msg, type = 'info') { let panel = document.getElementById('log-panel'); if (!panel) return; let div = document.createElement('div'); div.className = `log-item ${type}`; div.innerText = `> ${msg}`; panel.prepend(div); if (panel.children.length > 5) panel.lastChild.remove(); }
+
+        function switchTab(tabId, el) { document.querySelectorAll('.tab').forEach(t => t.classList.remove('active')); document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active')); if(el) el.classList.add('active'); let target = document.getElementById(tabId); if(target) target.classList.add('active'); if (tabId === 'tab-trade') setTimeout(resizeCanvas, 50); if (tabId === 'tab-leaderboard') updateLeaderboard(); }
+
+        function toggleDropdown() { let dd = document.getElementById('dropdown'); if(dd) dd.classList.toggle('active'); }
+        document.addEventListener('click', function(e) { let dd = document.getElementById('dropdown'); let sel = document.querySelector('.asset-selector'); if (dd && sel && !sel.contains(e.target)) dd.classList.remove('active'); });
+        function selectAsset(symbol) { if (activeTrade) { addLog("Нельзя менять актив во время сделки!", "error"); return; } currentAsset = symbol; safeSetText('current-asset', `${assets[symbol].name} ▼`); let dd = document.getElementById('dropdown'); if (dd) dd.classList.remove('active'); resetCandles(); saveGame(); updateUI(); }
+
+        function gameLoop() { let lastClose = currentPrice; let change = (Math.random() - 0.5) * (currentPrice * 0.002); let close = lastClose + change; candles.push({ open: lastClose, high: Math.max(lastClose, close), low: Math.min(lastClose, close), close }); if (candles.length > 40) candles.shift(); if (debt > 0) debt *= 1.0005; if (passiveIncome > 0) balance += passiveIncome; if (insiderActive) { currentPrice = currentPrice * 0.95 + insiderTarget * 0.05; insiderTimer--; if (insiderTimer <= 0) { insiderActive = false; addLog("Действие инсайда закончилось.", "info"); } } else { currentPrice = close; } updateUI(); }
+
+        window.onload = () => { loadGame(); setTimeout(resizeCanvas, 100); updateUI(); setInterval(gameLoop, 1000); };
     </script>
 </body>
 </html>

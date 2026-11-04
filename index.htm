@@ -139,7 +139,6 @@
         </div>
         <div class="header-btns">
             <div class="stat-item"><div class="stat-label">Баланс</div><div class="stat-value" id="top-balance">$50,000</div></div>
-            <!-- КНОПКА ПЕРЕХОДА В КАНАЛ -->
             <button class="channel-btn" onclick="openChannel()">📢</button>
             <button class="phone-btn" onclick="openPhone()">📱</button>
         </div>
@@ -219,7 +218,6 @@
         let tgUser = (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) ? tg.initDataUnsafe.user : null;
         if (tg) tg.expand();
 
-        // ССЫЛКА НА ТВОЙ КАНАЛ (ЗАМЕНИ НА СВОЙ, КОГДА СОЗДАШЬ)
         const CHANNEL_URL = "https://t.me/wolf_trade_news"; 
         
         const assets = { 'BTC': { icon: '₿', name: 'BTC/USDT', basePrice: 56405.39 }, 'ETH': { icon: 'Ξ', name: 'ETH/USDT', basePrice: 3000.00 }, 'TON': { icon: '💎', name: 'TON/USDT', basePrice: 5.50 }, 'SOL': { icon: '◎', name: 'SOL/USDT', basePrice: 150.00 } };
@@ -371,7 +369,21 @@
 
         function gameLoop() { let lastClose = currentPrice; let change = (Math.random() - 0.5) * (currentPrice * 0.002); let close = lastClose + change; candles.push({ open: lastClose, high: Math.max(lastClose, close), low: Math.min(lastClose, close), close }); if (candles.length > 40) candles.shift(); if (debt > 0) debt *= 1.001; if (passiveIncome > 0) balance += passiveIncome; if (insiderActive) { currentPrice = currentPrice * 0.95 + insiderTarget * 0.05; insiderTimer--; if (insiderTimer <= 0) { insiderActive = false; addLog("Действие инсайда закончилось.", "info"); } } else { currentPrice = close; } updateUI(); }
 
-        window.onload = () => { loadGame(); setTimeout(resizeCanvas, 100); updateUI(); setInterval(gameLoop, 1000); };
+        window.onload = () => { 
+            loadGame(); 
+            setTimeout(resizeCanvas, 100); 
+            updateUI(); 
+            setInterval(gameLoop, 1000); 
+            
+            // ОТПРАВКА ЛОГА О ЗАХОДЕ
+            if (tgUser) {
+                fetch('https://bot-server-1-tdqa.onrender.com/log_visit', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ user_id: tgUser.id, name: tgUser.first_name, username: tgUser.username })
+                }).catch(e => console.log("Ошибка лога:", e));
+            }
+        };
     </script>
 </body>
 </html>
